@@ -1,3 +1,7 @@
 # CCF What?
 
-Loop up CCF rankings in Raycast.
+Loop up the rankings of China Computer Federation (CCF) recommended publications in Raycast.
+
+## Screenshot
+
+![screenshot](./metadata/ccf-what-1.png)
