@@ -18,8 +18,45 @@
       "mode": "view"
     }
   ],
+  "preferences": [
+    {
+      "name": "UpdateURL",
+      "description": "Choose the data source for CCF rankings.",
+      "type": "textfield",
+      "required": false,
+      "title": "Data Source URL",
+      "default": "https://cdn.jsdelivr.net/gh/CrackedPoly/ccf-what/src/resource/CCF_Ranking_2022.json"
+    },
+    {
+      "name": "UpdateInterval",
+      "description": "When to fetch the data source.",
+      "type": "dropdown",
+      "data": [
+        {
+          "title": "Never",
+          "value": "never"
+        },
+        {
+          "title": "Every day",
+          "value": "daily"
+        },
+        {
+          "title": "Every week",
+          "value": "weekly"
+        },
+        {
+          "title": "Every month",
+          "value": "monthly"
+        }
+      ],
+      "required": false,
+      "title": "Update Interval",
+      "default": "Never"
+    }
+  ],
   "dependencies": {
-    "@raycast/api": "^1.68.1"
+    "@raycast/api": "^1.68.1",
+    "@raycast/utils": "^1.12.5"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^1.0.6",
