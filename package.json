@@ -24,7 +24,7 @@
       "type": "textfield",
       "required": false,
       "title": "Data Source URL",
-      "default": "https://raw.githubusercontent.com/CrackedPoly/ccf-what/main/src/resource/CCF_Ranking_2022.json"
+      "default": "https://cdn.jsdelivr.net/gh/CrackedPoly/ccf-what@latest/src/resource/CCF_Ranking_2022.json"
     },
     {
       "name": "UpdateInterval",
