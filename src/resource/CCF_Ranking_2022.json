@@ -7,31 +7,31 @@
       "id": 0,
       "abbr": "体系",
       "chinese": "计算机体系结构/并行与分布计算/存储系统",
-      "english": "Computer Architecture / Parallel and Distributed Computing / Storage System"
+      "english": "Arch / Computing / Storage"
     },
     {
       "id": 1,
       "abbr": "网络",
       "chinese": "计算机网络",
-      "english": "Computer Network"
+      "english": "Network"
     },
     {
       "id": 2,
       "abbr": "安全",
       "chinese": "网络与信息安全",
-      "english": "Networks and Information Security"
+      "english": "Security"
     },
     {
       "id": 3,
       "abbr": "PL",
       "chinese": "软件工程/系统软件/程序设计语言",
-      "english": "Software Engineering / System Software / Programming Language"
+      "english": "Software Engineering / PL"
     },
     {
       "id": 4,
       "abbr": "数据库",
       "chinese": "数据库/数据挖掘/内容检索",
-      "english": "Database / Data Mining / Information Retrieval"
+      "english": "DB / Data Mining / IR"
     },
     {
       "id": 5,
@@ -43,25 +43,25 @@
       "id": 6,
       "abbr": "图形",
       "chinese": "计算机图形学与多媒体",
-      "english": "Computer Graphics and Multi-media"
+      "english": "Graphics and Multi-media"
     },
     {
       "id": 7,
       "abbr": "AI",
       "chinese": "人工智能",
-      "english": "Artificial Intelligence"
+      "english": "AI"
     },
     {
       "id": 8,
       "abbr": "人机交互",
       "chinese": "人机交互与普适计算",
-      "english": "Computer-Human Interaction and Ubiquitous Computing"
+      "english": "CHI and Ubiquitous Computing"
     },
     {
       "id": 9,
       "abbr": "交叉",
       "chinese": "交叉/综合/新兴",
-      "english": "Misc / Comprehensive / New"
+      "english": "Misc / Comprehensive"
     }
   ],
   "list": [

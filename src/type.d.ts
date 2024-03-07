@@ -18,7 +18,7 @@ interface Publication {
   abbr: string;
   name: string;
   publisher: string;
-  type: string;
-  rank: string;
+  type: "Journal" | "Conference";
+  rank: "A" | "B" | "C";
   category_id: number;
 }

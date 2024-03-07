@@ -1,55 +1,85 @@
-import { List, Action, ActionPanel, getPreferenceValues, LocalStorage, Icon } from "@raycast/api";
-import { usePromise, useFrecencySorting } from "@raycast/utils";
-import { useRef, useState } from "react";
+import {
+  List,
+  Action,
+  ActionPanel,
+  getPreferenceValues,
+  Icon,
+  showToast,
+  openExtensionPreferences,
+  Toast,
+  Cache,
+} from "@raycast/api";
+import { usePromise, useFrecencySorting, useCachedState, useCachedPromise } from "@raycast/utils";
+import { useRef } from "react";
 import { fetch } from "cross-fetch";
 import * as CONST from "./const";
 
 export default function Command() {
-  LocalStorage.getItem("lastFetch").then((value) => console.log(value));
+  const CACHE = new Cache();
+  console.log("lastFetch time is", CACHE.get("lastFetch"));
+  const localization = getPreferenceValues().localization == "en" ? false : true;
   const interval = getPreferenceValues().updateInterval ?? CONST.DEFAULT_FETCH_INTERVAL;
   const fetchURL = getPreferenceValues().updateURL ?? CONST.DEFAULT_FETCH_URL;
-  // const fetchURL = "https://cdn.jsdelivr.net/gh/CrackedPoly/ccf-what@latest/src/resource/CCF_Ranking_2022.json";
-  console.log("fetchURL: ", fetchURL);
 
   const abortable = useRef<AbortController>();
-  const [showingDetail, setShowingDetail] = useState(true);
-  const [showingSubtitle, setShowingSubtitle] = useState(false);
-
-  const { isLoading, data, revalidate } = usePromise(fetchData, [fetchURL, interval], { abortable });
-  const {
-    data: sortedData,
-    visitItem,
-    resetRanking,
-  } = useFrecencySorting(data?.ranking?.list, { key: (item) => item.id });
+  const [showingDetail, setShowingDetail] = useCachedState("showingDetail", true);
+  const [showingSubtitle, setShowingSubtitle] = useCachedState("showingSubtitle", false);
+  const [lastFetch, setLastFetch] = useCachedState<number>("lastFetch", 0);
+  const { isLoading, data, revalidate } = useCachedPromise(
+    async () => {
+      const toast = await showToast({ style: Toast.Style.Animated, title: "Refreshing data" });
+      try {
+        console.log("running revalidate");
+        const res = await fetch(fetchURL, { signal: abortable.current?.signal });
+        console.log("fetched new data from the URL");
+        const jsonObj = await res.json();
+        const now = new Date();
+        setLastFetch(now.getTime());
+        console.log("set lastFetch to", now.getTime());
+        toast.style = Toast.Style.Success;
+        toast.title = "Data fetched from " + fetchURL;
+        return jsonObj as unknown as CCFRanking | undefined;
+      } catch (err) {
+        toast.style = Toast.Style.Failure;
+        toast.title = "Fetch failed.";
+        toast.message = (err as Error).message;
+        toast.primaryAction = {
+          title: "Open Preference",
+          onAction: (toast) => {
+            toast.hide();
+            openExtensionPreferences();
+          },
+        };
+      }
+    },
+    [],
+    { keepPreviousData: true, execute: false },
+  );
+  const { isLoading: isChecking } = usePromise(async () => {
+    const diff = new Date().getTime() - lastFetch;
+    const itvl = CONST.parseInterval(interval);
+    if (lastFetch === 0 || (itvl > 0 && diff > itvl)) {
+      await revalidate();
+    }
+  });
+  const { data: sortedData, visitItem, resetRanking } = useFrecencySorting(data?.list, { key: (item) => item.id });
 
   return (
     <List
-      isLoading={isLoading}
+      isLoading={isLoading || isChecking}
       isShowingDetail={showingDetail}
       filtering={true}
-      navigationTitle={data ? `Last updated at ${data?.date.toLocaleString()}` : "Loading..."}
+      navigationTitle={data ? `Last updated at ${new Date(lastFetch).toLocaleDateString()}` : "No data..."}
       searchBarPlaceholder="Your paper is accepted by?"
     >
-      {sortedData ? (
-        sortedData.map((item) => PublicationListItem(item))
-      ) : (
-        <List.EmptyView title={"Getting data source from " + fetchURL} />
-      )}
+      {sortedData.map((item) => PublicationListItem(item))}
     </List>
   );
 
   function PublicationListItem(props: Publication) {
-    const tier_icon = {
-      A: CONST.A_ICON,
-      B: CONST.B_ICON,
-      C: CONST.C_ICON,
-    }[props.rank];
-    const type_icon = {
-      Conference: CONST.CONF_ICON_DARK,
-      Journal: CONST.JOUR_ICON_DARK,
-    }[props.type];
-    const category = data?.ranking?.category[props.category_id];
-
+    const tier_icon = CONST.TIER_ICON[props.rank];
+    const type_icon = CONST.TYPE_ICON[props.type];
+    const category = data?.category[props.category_id];
     return (
       <List.Item
         key={props.id}
@@ -57,7 +87,7 @@ export default function Command() {
         keywords={[props.abbr, props.name, category?.english ?? "no category", category?.chinese ?? "无分类"]}
         title={props.abbr}
         subtitle={showingSubtitle ? props.name : undefined}
-        accessories={[{ icon: type_icon }, { text: category?.chinese }]}
+        accessories={[{ icon: type_icon }, { text: localization ? category?.chinese : category?.english }]}
         actions={
           <ActionPanel>
             <Action.OpenInBrowser
@@ -65,13 +95,6 @@ export default function Command() {
               url={`https://dblp.uni-trier.de/search?q=${props.abbr}`}
               onOpen={() => visitItem(props)}
             />
-            <Action.CopyToClipboard
-              content={props.name}
-              shortcut={{ modifiers: ["cmd"], key: "." }}
-              onCopy={() => visitItem(props)}
-            />
-            <Action title="Reload" onAction={() => revalidate()} />
-            <Action title="Reset Ranking" icon={Icon.ArrowCounterClockwise} onAction={() => resetRanking(props)} />
             <Action
               title="Toggle Detail"
               icon={CONST.TOGGLE_ICON}
@@ -80,6 +103,23 @@ export default function Command() {
                 setShowingDetail(!showingDetail);
                 setShowingSubtitle(!showingSubtitle);
               }}
+            />
+            <Action.CopyToClipboard
+              content={props.name}
+              shortcut={{ modifiers: ["cmd"], key: "." }}
+              onCopy={() => visitItem(props)}
+            />
+            <Action
+              title="Refetch Data"
+              icon={Icon.Download}
+              shortcut={{ modifiers: ["cmd"], key: "r" }}
+              onAction={() => revalidate()}
+            />
+            <Action
+              title="Reset Ranking"
+              icon={Icon.ArrowCounterClockwise}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
+              onAction={() => resetRanking(props)}
             />
           </ActionPanel>
         }
@@ -91,9 +131,16 @@ export default function Command() {
                 <List.Item.Detail.Metadata.Label title="Name" text={props.name} />
                 <List.Item.Detail.Metadata.Separator />
                 <List.Item.Detail.Metadata.Label title="Tier" icon={tier_icon} />
-                <List.Item.Detail.Metadata.Label title="Category" text={category?.english} />
+                <List.Item.Detail.Metadata.Label
+                  title="Category"
+                  text={localization ? category?.chinese : category?.english}
+                />
                 <List.Item.Detail.Metadata.Separator />
-                <List.Item.Detail.Metadata.Label title="Type" icon={type_icon} text={props.type} />
+                <List.Item.Detail.Metadata.Label
+                  title="Type"
+                  icon={type_icon}
+                  text={localization ? CONST.TYPE_LOCALIZATION[props.type] : props.type}
+                />
                 <List.Item.Detail.Metadata.Label title="Publisher" text={props.publisher} />
                 <List.Item.Detail.Metadata.Separator />
               </List.Item.Detail.Metadata>
@@ -102,37 +149,5 @@ export default function Command() {
         }
       />
     );
-  }
-}
-
-async function fetchData(url: string, interval: string): Promise<{ ranking: CCFRanking | undefined; date: Date }> {
-  const conductFetch = async () => {
-    const res = await fetch(url);
-    const jsonObj = await res.json();
-    const now = new Date();
-    // const response = await fetch(url, { signal: abortable.current?.signal, ...options });
-    console.log(jsonObj);
-    LocalStorage.setItem("ranking", JSON.stringify(jsonObj));
-    LocalStorage.setItem("lastFetch", now.getTime());
-    return Promise.resolve({ ranking: jsonObj as unknown as CCFRanking | undefined, date: now });
-  };
-  // if last update is not set, then its the first time the user is using the extension
-  const lastFetch = await LocalStorage.getItem<number>("lastFetch");
-  if (lastFetch === undefined) {
-    return conductFetch();
-  }
-  const diff = new Date().getTime() - (lastFetch ?? 0);
-  const itvl = CONST.parseInterval(interval);
-
-  if (itvl < 0 || diff < itvl) {
-    // the policy is never fetch or the last fetch is within the interval
-    const data = await LocalStorage.getItem("ranking");
-    const now = new Date();
-    return data
-      ? Promise.resolve({ ranking: JSON.parse(data.toString()) as unknown as CCFRanking | undefined, date: now })
-      : conductFetch();
-  } else {
-    // else get the data from the URL
-    return conductFetch();
   }
 }

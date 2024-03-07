@@ -14,6 +14,22 @@ export enum UPDATE_INTERVAL {
   MONTHLY = "monthly",
 }
 
+export const TYPE_LOCALIZATION = {
+  Journal: "期刊",
+  Conference: "会议",
+};
+
+export const TYPE_ICON = {
+  Conference: CONF_ICON_DARK,
+  Journal: JOUR_ICON_DARK,
+};
+
+export const TIER_ICON = {
+  A: A_ICON,
+  B: B_ICON,
+  C: C_ICON,
+};
+
 export const DEFAULT_FETCH_INTERVAL = UPDATE_INTERVAL.NEVER;
 export const DEFAULT_FETCH_URL = "https://cdn.jsdelivr.net/gh/CrackedPoly/ccf-what/src/resource/CCF_Ranking_2022.json";
 
