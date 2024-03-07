@@ -7,7 +7,6 @@ import {
   showToast,
   openExtensionPreferences,
   Toast,
-  Cache,
 } from "@raycast/api";
 import { usePromise, useFrecencySorting, useCachedState, useCachedPromise } from "@raycast/utils";
 import { useRef } from "react";
@@ -15,11 +14,9 @@ import { fetch } from "cross-fetch";
 import * as CONST from "./const";
 
 export default function Command() {
-  const CACHE = new Cache();
-  console.log("lastFetch time is", CACHE.get("lastFetch"));
-  const localization = getPreferenceValues().localization == "en" ? false : true;
-  const interval = getPreferenceValues().updateInterval ?? CONST.DEFAULT_FETCH_INTERVAL;
-  const fetchURL = getPreferenceValues().updateURL ?? CONST.DEFAULT_FETCH_URL;
+  const localization = getPreferenceValues().Localization == "en" ? false : true;
+  const interval = getPreferenceValues().UpdateInterval ?? CONST.DEFAULT_FETCH_INTERVAL;
+  const fetchURL = getPreferenceValues().UpdateURL ?? CONST.DEFAULT_FETCH_URL;
 
   const abortable = useRef<AbortController>();
   const [showingDetail, setShowingDetail] = useCachedState("showingDetail", true);
@@ -27,15 +24,22 @@ export default function Command() {
   const [lastFetch, setLastFetch] = useCachedState<number>("lastFetch", 0);
   const { isLoading, data, revalidate } = useCachedPromise(
     async () => {
-      const toast = await showToast({ style: Toast.Style.Animated, title: "Refreshing data" });
+      const toast = await showToast({
+        style: Toast.Style.Animated,
+        title: "Refreshing data",
+        primaryAction: {
+          title: "Open Preference",
+          onAction: (toast) => {
+            toast.hide();
+            openExtensionPreferences();
+          },
+        },
+      });
       try {
-        console.log("running revalidate");
         const res = await fetch(fetchURL, { signal: abortable.current?.signal });
-        console.log("fetched new data from the URL");
         const jsonObj = await res.json();
         const now = new Date();
         setLastFetch(now.getTime());
-        console.log("set lastFetch to", now.getTime());
         toast.style = Toast.Style.Success;
         toast.title = "Data fetched from " + fetchURL;
         return jsonObj as unknown as CCFRanking | undefined;
@@ -43,13 +47,6 @@ export default function Command() {
         toast.style = Toast.Style.Failure;
         toast.title = "Fetch failed.";
         toast.message = (err as Error).message;
-        toast.primaryAction = {
-          title: "Open Preference",
-          onAction: (toast) => {
-            toast.hide();
-            openExtensionPreferences();
-          },
-        };
       }
     },
     [],
@@ -110,13 +107,13 @@ export default function Command() {
               onCopy={() => visitItem(props)}
             />
             <Action
-              title="Refetch Data"
+              title="Refetch Ranking Data"
               icon={Icon.Download}
               shortcut={{ modifiers: ["cmd"], key: "r" }}
               onAction={() => revalidate()}
             />
             <Action
-              title="Reset Ranking"
+              title="Reset Frequency"
               icon={Icon.ArrowCounterClockwise}
               shortcut={{ modifiers: ["cmd", "shift"], key: "r" }}
               onAction={() => resetRanking(props)}

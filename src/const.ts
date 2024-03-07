@@ -31,7 +31,8 @@ export const TIER_ICON = {
 };
 
 export const DEFAULT_FETCH_INTERVAL = UPDATE_INTERVAL.NEVER;
-export const DEFAULT_FETCH_URL = "https://cdn.jsdelivr.net/gh/CrackedPoly/ccf-what/src/resource/CCF_Ranking_2022.json";
+export const DEFAULT_FETCH_URL =
+  "https://cdn.jsdelivr.net/gh/CrackedPoly/ccf-what@latest/src/resource/CCF_Ranking_2022.json";
 
 export const parseInterval = (interval: string) => {
   switch (interval) {
