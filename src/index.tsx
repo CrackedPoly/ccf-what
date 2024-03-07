@@ -8,6 +8,7 @@ export default function Command() {
   LocalStorage.getItem("lastFetch").then((value) => console.log(value));
   const interval = getPreferenceValues().updateInterval ?? CONST.DEFAULT_FETCH_INTERVAL;
   const fetchURL = getPreferenceValues().updateURL ?? CONST.DEFAULT_FETCH_URL;
+  // const fetchURL = "https://cdn.jsdelivr.net/gh/CrackedPoly/ccf-what@latest/src/resource/CCF_Ranking_2022.json";
   console.log("fetchURL: ", fetchURL);
 
   const abortable = useRef<AbortController>();
@@ -51,9 +52,9 @@ export default function Command() {
 
     return (
       <List.Item
-        key={props.name}
+        key={props.id}
         icon={tier_icon}
-        keywords={[props.abbr, props.name]}
+        keywords={[props.abbr, props.name, category?.english ?? "no category", category?.chinese ?? "无分类"]}
         title={props.abbr}
         subtitle={showingSubtitle ? props.name : undefined}
         accessories={[{ icon: type_icon }, { text: category?.chinese }]}
@@ -69,8 +70,8 @@ export default function Command() {
               shortcut={{ modifiers: ["cmd"], key: "." }}
               onCopy={() => visitItem(props)}
             />
-            <Action title="Reset Ranking" icon={Icon.ArrowCounterClockwise} onAction={() => resetRanking(props)} />
             <Action title="Reload" onAction={() => revalidate()} />
+            <Action title="Reset Ranking" icon={Icon.ArrowCounterClockwise} onAction={() => resetRanking(props)} />
             <Action
               title="Toggle Detail"
               icon={CONST.TOGGLE_ICON}

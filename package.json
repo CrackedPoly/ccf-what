@@ -25,10 +25,11 @@
       "type": "textfield",
       "required": false,
       "title": "Data Source URL",
-      "default": "https://cdn.jsdelivr.net/gh/CrackedPoly/ccf-what/src/resource/CCF_Ranking_2022.json"
+      "default": "https://cdn.jsdelivr.net/gh/CrackedPoly/ccf-what@latest/src/resource/CCF_Ranking_2022.json"
     },
     {
       "name": "UpdateInterval",
+      "title": "Update Interval",
       "description": "When to fetch the data source.",
       "type": "dropdown",
       "data": [
@@ -50,8 +51,25 @@
         }
       ],
       "required": false,
-      "title": "Update Interval",
       "default": "Never"
+    },
+    {
+      "name": "localization",
+      "title": "Language",
+      "description": "Choose the language you prefer.",
+      "type": "dropdown",
+      "data": [
+        {
+          "title": "English",
+          "value": "en"
+        },
+        {
+          "title": "中文",
+          "value": "zh"
+        }
+      ],
+      "required": false,
+      "default": "English"
     }
   ],
   "dependencies": {
