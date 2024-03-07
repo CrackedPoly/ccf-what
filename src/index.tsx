@@ -1,16 +1,20 @@
 import { List, Action, ActionPanel, getPreferenceValues, LocalStorage } from "@raycast/api";
-import { AsyncState, useFetch } from "@raycast/utils";
-import { useState } from "react";
+import { usePromise } from "@raycast/utils";
+import { useRef, useState } from "react";
+import { fetch } from "cross-fetch";
 import * as CONST from "./const";
 
 export default function Command() {
-  LocalStorage.getItem("lastUpdate").then((res) => {
-    console.log(res);
-  });
+  LocalStorage.getItem("lastUpdate").then((value) => console.log(value));
+  const interval = getPreferenceValues().updateInterval ?? CONST.DEFAULT_FETCH_INTERVAL;
+  const fetchURL = getPreferenceValues().updateURL ?? CONST.DEFAULT_FETCH_URL;
+  console.log("fetchURL: ", fetchURL);
 
+  const abortable = useRef<AbortController>();
   const [showingDetail, setShowingDetail] = useState(true);
   const [showingSubtitle, setShowingSubtitle] = useState(false);
-  const { isLoading, data } = useData();
+
+  const { isLoading, data, revalidate } = usePromise(fetchData, [fetchURL, interval], { abortable });
 
   return (
     <List
@@ -23,7 +27,7 @@ export default function Command() {
       {data ? (
         data.list.map((item, index) => PublicationListItem(item, index))
       ) : (
-        <List.Item title="Error in data source" />
+        <List.EmptyView title={"Getting data source from " + fetchURL} />
       )}
     </List>
   );
@@ -52,6 +56,7 @@ export default function Command() {
           <ActionPanel>
             <Action.OpenInBrowser title="Search in DBLP" url={`https://dblp.uni-trier.de/search?q=${props.abbr}`} />
             <Action.CopyToClipboard content={name} shortcut={{ modifiers: ["cmd"], key: "." }} />
+            <Action title="Reload" onAction={() => revalidate()} />
             <Action
               title="Toggle Detail"
               icon={CONST.TOGGLE_ICON}
@@ -85,42 +90,28 @@ export default function Command() {
   }
 }
 
-function useData(): AsyncState<CCFRanking | undefined> {
-  // if last update is not set, then its the first time the user is using the extension
-  const interval = getPreferenceValues().updateInterval ?? CONST.DEFAULT_FETCH_INTERVAL;
-  const fetchURL = getPreferenceValues().updateURL ?? CONST.DEFAULT_FETCH_URL;
-  let lastFetch: number | undefined = undefined;
-  LocalStorage.getItem<number>("lastUpdate").then((res) => (lastFetch = res));
-  const diff = new Date().getTime() - (lastFetch ?? 0);
-
-  const conductFetch = () => {
-    return useFetch(fetchURL, {
-      parseResponse: (response: Response) =>
-        response.json().then((data) => {
-          return data as CCFRanking;
-        }),
-      onData: (data: CCFRanking) => {
-        LocalStorage.setItem("lastUpdate", new Date().getTime());
-        LocalStorage.setItem("data", JSON.stringify(data));
-      },
-    });
+async function fetchData(url: string, interval: string): Promise<CCFRanking | undefined> {
+  const conductFetch = async () => {
+    const res = await fetch(url);
+    const jsonObj = await res.json();
+    // const response = await fetch(url, { signal: abortable.current?.signal, ...options });
+    console.log(jsonObj);
+    LocalStorage.setItem("data", JSON.stringify(jsonObj));
+    LocalStorage.setItem("lastUpdate", new Date().getTime());
+    return Promise.resolve(jsonObj as CCFRanking);
   };
+  // if last update is not set, then its the first time the user is using the extension
+  const lastFetch = await LocalStorage.getItem<number>("lastUpdate");
+  if (lastFetch === undefined) {
+    return conductFetch();
+  }
+  const diff = new Date().getTime() - (lastFetch ?? 0);
+  const itvl = CONST.parseInterval(interval);
 
-  console.log(
-    "lastFetch:",
-    lastFetch,
-    "interval:",
-    interval,
-    "diff:",
-    diff,
-    "parseInterval:",
-    CONST.parseInterval(interval),
-  );
-  if (lastFetch !== undefined && (interval < 0 || diff < CONST.parseInterval(interval))) {
-    // if the data is already in the local storage, and the policy is never fetch or the last fetch is within the interval
-    LocalStorage.getItem("data").then((data) => {
-      return data ? { isLoading: false, data: JSON.parse(data.toString()) as CCFRanking } : conductFetch();
-    });
+  if (itvl < 0 || diff < itvl) {
+    // the policy is never fetch or the last fetch is within the interval
+    const data = await LocalStorage.getItem("data");
+    return data ? Promise.resolve(JSON.parse(data.toString()) as CCFRanking) : conductFetch();
   } else {
     // else get the data from the URL
     return conductFetch();
